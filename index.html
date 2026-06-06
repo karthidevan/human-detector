@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Human Detection</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<style>
+body{
+text-align:center;
+font-family:Arial;
+}
+canvas{
+margin-top:10px;
+}
+#result{
+font-size:30px;
+font-weight:bold;
+color:green;
+}
+</style>
+
+</head>
+<body>
+
+<h2>Human vs Non-Human Detection</h2>
+
+<button onclick="init()">Start Camera</button>
+
+<div id="webcam-container"></div>
+
+<div id="result">Waiting...</div>
+
+<script>
+
+const URL = "https://teachablemachine.withgoogle.com/models/g_MXiVpSK/";
+
+let model, webcam, maxPredictions;
+
+async function init() {
+
+const modelURL = URL + "model.json";
+const metadataURL = URL + "metadata.json";
+
+model = await tmImage.load(modelURL, metadataURL);
+maxPredictions = model.getTotalClasses();
+
+webcam = new tmImage.Webcam(300,300,true);
+
+await webcam.setup();
+await webcam.play();
+
+window.requestAnimationFrame(loop);
+
+document.getElementById("webcam-container").appendChild(webcam.canvas);
+}
+
+async function loop() {
+webcam.update();
+await predict();
+window.requestAnimationFrame(loop);
+}
+
+async function predict() {
+
+const prediction = await model.predict(webcam.canvas);
+
+let highest = prediction[0];
+
+for(let i=1;i<prediction.length;i++){
+if(prediction[i].probability > highest.probability){
+highest = prediction[i];
+}
+}
+
+document.getElementById("result").innerHTML =
+highest.className +
+" : " +
+(highest.probability*100).toFixed(1) + "%";
+
+}
+</script>
+
+</body>
+</html>
