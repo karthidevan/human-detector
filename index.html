@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>AI Human Detector</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<style>
+body{
+    text-align:center;
+    font-family:Arial;
+    margin:20px;
+}
+
+h2{
+    color:#2c3e50;
+}
+
+button{
+    padding:10px 20px;
+    font-size:16px;
+    margin:10px;
+}
+
+#result{
+    font-size:28px;
+    font-weight:bold;
+    color:green;
+    margin-top:15px;
+}
+</style>
+
+</head>
+
+<body onload="init()">
+
+<h2>AI Human Detector</h2>
+
+<button onclick="switchCamera()">Switch Camera</button>
+
+<div id="webcam-container"></div>
+
+<div id="result">Loading Camera...</div>
+
+<script>
+
+const URL = "https://teachablemachine.withgoogle.com/models/g_MXiVpSK/";
+
+let model, webcam;
+let currentFacingMode = "user"; // Front Camera
+
+async function init() {
+
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
+
+    model = await tmImage.load(modelURL, metadataURL);
+
+    webcam = new tmImage.Webcam(300,300,false);
+
+    await webcam.setup({
+        facingMode: currentFacingMode
+    });
+
+    await webcam.play();
+
+    window.requestAnimationFrame(loop);
+
+    document.getElementById("webcam-container").innerHTML = "";
+    document.getElementById("webcam-container").appendChild(webcam.canvas);
+}
+
+async function loop() {
+    webcam.update();
+    await predict();
+    window.requestAnimationFrame(loop);
+}
+
+async function predict() {
+
+    const prediction = await model.predict(webcam.canvas);
+
+    let highest = prediction[0];
+
+    for(let i=1;i<prediction.length;i++){
+        if(prediction[i].probability > highest.probability){
+            highest = prediction[i];
+        }
+    }
+
+    document.getElementById("result").innerHTML =
+    highest.className + " : " +
+    (highest.probability*100).toFixed(1) + "%";
+}
+
+async function switchCamera() {
+
+    currentFacingMode =
+    currentFacingMode === "user"
+    ? "environment"
+    : "user";
+
+    if(webcam){
+        await webcam.stop();
+    }
+
+    webcam = new tmImage.Webcam(300,300,false);
+
+    await webcam.setup({
+        facingMode: currentFacingMode
+    });
+
+    await webcam.play();
+
+    document.getElementById("webcam-container").innerHTML = "";
+    document.getElementById("webcam-container").appendChild(webcam.canvas);
+}
+
+</script>
+
+</body>
+</html>
